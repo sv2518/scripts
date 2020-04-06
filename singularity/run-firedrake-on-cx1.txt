@@ -1,0 +1,61 @@
+# Instructions provided by Santiago Lacalle Puig
+
+## README ##
+Download the latest singularity container somewhere in your $HOME with:
+
+       singularity pull library://slacalle/default/firedrake:latest
+
+##########################################################################
+
+## FOR TESTING ##
+1. For testing run interactive job:
+       qsub -I -l walltime=08:00:00 -l select=01:ncpus=8:mem=96gb
+
+2. Change directory to the folder where you have your container image
+       cd [my_directory]
+
+3. Load the intel-mpi module:
+       module load mpi/intel-2019
+
+4. Get hostfile 
+	     cat $PBS_NODEFILE >> myhostfile
+	
+5. Run the container with:
+       singularity shell -B$TMPDIR:/tmp -B$EPHEMERAL:/firedrake/firedrake/.cache --writable-tmpfs firedrake_latest.sif
+
+6. Within the container, activate the firedrake environment
+       . /firedrake/firedrake/bin/activate
+
+7. Copy the specific demo file to the current directory, and generate python script:
+       cp /firedrake/firedrake/src/firedrake/demos/helmholtz/helmholtz.py.rst ./
+       /firedrake/firedrake/src/firedrake/pylit/pylit.py ./helmholtz.py.rst
+
+8. Run the demo example:
+       mpiexec --hostfile myhostfile python ./helmholtz.py
+
+If you have X-forwarding enabled you might see the graphs pop-up. Alternatively they will be saved to the current working directory.
+
+############################################################################
+
+## BATCH JOBS ##
+
+1. Containers are generall read-only. As such have all your files (including the container image .sif) in the same directory
+
+2. Write a jobscript in the form:
+
+
+        #PBS parameters
+        #PBS parameters
+
+        module load mpi/intel-2019
+
+        cd [my_directory]
+
+        mpiexec singularity exec -B$TMPDIR:/tmp -B$EPHEMERAL:/firedrake/firedrake/.cache --writable-tmpfs firedrake_latest.sif \
+        bash -c "source /firedrake/firedrake/bin/activate && python /firedrake/firedrake/src/firedrake/demos/helmholtz/helmholtz.py"
+
+
+The command at the end "mpiexec ...." will be the one to run within the container. Remember that output should be limited to the current
+working directory.
+
+3. Submit job with qsub.
